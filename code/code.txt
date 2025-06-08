@@ -1,0 +1,113 @@
+let nucleus = [];
+let neutrons = [];
+let isPaused = false;
+let neutronCollisionMode = false;
+let pauseButton, modeButton;
+
+function setup() {
+  createCanvas(1200, 800);
+  resetScene();
+  pauseButton = createButton('Pause');
+  pauseButton.mousePressed(togglePause);
+  modeButton = createButton('Switch to Neutron Mode');
+  modeButton.mousePressed(toggleMode);
+}
+
+function resetScene() {
+  nucleus = [];
+  neutrons = [];
+  nucleus.push({x: width/2, y: height/2, r: 50, splitting: false, vx: random(-2, 2), vy: random(-2, 2)});
+  if (neutronCollisionMode) {
+    neutrons.push({x: width/2 - 60, y: height/2, vx: 3, vy: random(-1, 1)});
+  }
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  pauseButton.html(isPaused ? 'Resume' : 'Pause');
+}
+
+function toggleMode() {
+  neutronCollisionMode = !neutronCollisionMode;
+  modeButton.html(neutronCollisionMode ? 'Switch to Click Mode' : 'Switch to Neutron Mode');
+  resetScene();
+}
+
+function draw() {
+  background(0);
+  
+  if (!isPaused) {
+    for (let i = nucleus.length - 1; i >= 0; i--) {
+      let n = nucleus[i];
+      fill(255, 100, 100);
+      noStroke();
+      ellipse(n.x, n.y, n.r * 2);
+      
+      if (n.splitting) {
+        n.r -= 0.5;
+        if (n.r <= 25) {
+          nucleus.push({x: n.x - 20, y: n.y, r: 25, splitting: false, vx: -2, vy: random(-2, 2)});
+          nucleus.push({x: n.x + 20, y: n.y, r: 25, splitting: false, vx: 2, vy: random(-2, 2)});
+          for (let j = 0; j < 3; j++) {
+            if (neutrons.length < 10) {
+              neutrons.push({x: n.x, y: n.y, vx: random(-3, 3), vy: random(-3, 3)});
+            }
+          }
+          nucleus.splice(i, 1);
+        }
+      }
+      
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < n.r || n.x > width - n.r) n.vx *= -1;
+      if (n.y < n.r || n.y > height - n.r) n.vy *= -1;
+    }
+    
+    for (let i = neutrons.length - 1; i >= 0; i--) {
+      let p = neutrons[i];
+      fill(100, 255, 100);
+      ellipse(p.x, p.y, 5);
+      p.x += p.vx;
+      p.y += p.vy;
+      
+      if (neutronCollisionMode) {
+        for (let j = 0; j < nucleus.length; j++) {
+          let n = nucleus[j];
+          if (!n.splitting) {
+            let d = dist(p.x, p.y, n.x, n.y);
+            if (d < n.r + 2.5) {
+              n.splitting = true;
+              neutrons.splice(i, 1);
+              break;
+            }
+          }
+        }
+      }
+      
+      if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) {
+        neutrons.splice(i, 1);
+      }
+    }
+  } else {
+    for (let n of nucleus) {
+      fill(255, 100, 100);
+      noStroke();
+      ellipse(n.x, n.y, n.r * 2);
+    }
+    for (let p of neutrons) {
+      fill(100, 255, 100);
+      ellipse(p.x, p.y, 5);
+    }
+  }
+}
+
+function mousePressed() {
+  if (!isPaused && !neutronCollisionMode) {
+    for (let n of nucleus) {
+      if (!n.splitting && dist(mouseX, mouseY, n.x, n.y) < n.r) {
+        n.splitting = true;
+        break;
+      }
+    }
+  }
+}
